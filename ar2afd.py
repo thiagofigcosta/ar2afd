@@ -57,11 +57,7 @@ class LexicalAnalysis(object):
 		self.dictionary=[]
 		for i in range(len(self.er)):
 			if(self.er[i]!='(' and self.er[i]!=')' and self.er[i]!='*' and self.er[i]!='+' and self.er[i]!=' '):
-				unique=True
-				for j in range(len(self.dictionary)):
-					if(self.er[i]==self.dictionary[j]):
-						unique=False
-				if(unique):
+				if(self.er[i] not in self.dictionary):
 					self.dictionary.append(self.er[i])
 
 	def nextToken(self):
@@ -113,22 +109,25 @@ class SyntaticalAnalysis(object):
 		self.lexical=lexical
 		self.current=lexical.nextToken()
 		self.basename=0
+		self.eNFA=None
+		self.NFA=None
+		self.DFA=None
 
 	def popToken(self):
-		t=current.getToken()
+		t=self.current.getToken()
 		self.consumeToken()
 		return t
 	def getToken(self):
-		return current.getToken()
+		return self.current.getToken()
 	def testToken(self,ttype):
-		return current.getType()==ttype
+		return self.current.getType()==ttype
 	def consumeToken(self):
-		self.current=lexical.nextToken()
+		self.current=self.lexical.nextToken()
 	def matchToken(self,ttype):
 		if self.testToken(ttype):
 			self.current=lexical.nextToken()
 		else:
-			print('ERRRORRR expected ',ttype.name,' but got ',self.current.getType().name)
+			print('ERRRORRR-001 expected ',ttype.name,', but got ',self.current.getType().name)
 			raise SystemExit()
 
 	def genStateName(self):
@@ -138,45 +137,58 @@ class SyntaticalAnalysis(object):
 		self.basename=self.basename+1
 		return name
 		
+	def start(self):
+		self.eNFA=self.procExpr()
+		# self.NFA=Converter
+		# self.DFA=Converter
+
+	def geteNFA(self):
+		return self.eNFA
+
+	def getNFA(self):
+		return self.NFA
+
+	def getDFA(self):
+		return self.DFA
 
 	def procExpr(self):
 		a=self.procTerm()
-		while testToken(TokenType.CROSS):
+		while self.testToken(TokenType.CROSS):
 			self.consumeToken()
 			b=self.procTerm()
-			a.merge(b,'+')
+			a.merge(b,'+',self.genStateName())
 		return a
 
 	def procTerm(self):
 		a=self.procFactor()
-		while testToken(TokenType.SYMBOL) or testToken(TokenType.OPENTHEPAR):
+		while self.testToken(TokenType.SYMBOL) or self.testToken(TokenType.OPENTHEPAR):
 			b=self.procFactor()
 			a.merge(b,'.')
 		return a
 
 	def procFactor(self):
 		a=None
-		if testToken(TokenType.SYMBOL):
+		if self.testToken(TokenType.SYMBOL):
 			a=self.procSymbol()
-		elif testToken(TokenType.OPENTHEPAR):
-			consumeToken();
+		elif self.testToken(TokenType.OPENTHEPAR):
+			self.consumeToken();
 			a=self.procExpr();
-			matchToken(TokenType.CLOSETHEPAR)
-		elif not testToken(TokenType.STAR):
-			print('ERRRORRR expected symbol or ( or * but got',self.getToken())
+			self.matchToken(TokenType.CLOSETHEPAR)
+		elif not self.testToken(TokenType.STAR):
+			print('ERRRORRR-002 expected symbol or ( or *, but got ',self.getToken())
 			raise SystemExit()
-		if testToken(TokenType.STAR):
-			consumeToken()
+		if self.testToken(TokenType.STAR):
+			self.consumeToken()
 			a.star()
 		return a
 
 	def procSymbol(self):
 		states=[self.genStateName(), self.genStateName()]
 		dictionary=self.lexical.getDictionary()
-		transitions=Edge(states[0],self.popToken(),states[1])
+		transitions=[Edge(states[0],self.popToken(),states[1])]
 		initial=states[0]
 		finals=[states[1]]
-		return AF(states,dictionary,transitions,initial,finals)
+		return FA(states,dictionary,transitions,initial,finals)
 
 
 class Edge(object): 
@@ -185,7 +197,8 @@ class Edge(object):
 		self.token=token
 		self.destiny=destiny
 
-class AF(object): 
+class FA(object): 
+	LAMBDA=''
 	def __init__(self,states=[],dictionary=[],transitions=[],initial=None,finals=[]):
 		self.states=states
 		self.dictionary=dictionary
@@ -193,14 +206,59 @@ class AF(object):
 		self.initial=initial
 		self.finals=finals
 
-	def merge(self,other,opr):
+	def tojson(self):
+		def listToJson(lst):
+			json='	['
+			for i in range(len(lst)):
+				json=json+'\"'+lst[i]+'\"'
+				if i != len(lst)-1:
+					json=json+', '
+			json=json+'	]'
+			return json
+		def list2DToJson(lst):
+			json='	['
+			for i in range(len(lst)):
+				json=json+'	'+listToJson(lst[i])
+				if i != len(lst)-1:
+					json=json+',\n'
+			json=json+'	]'
+			return json
+		json='{ "af": [\n'
+		json=json+listToJson(self.states)+',\n'
+		json=json+listToJson(self.dictionary)+',\n'
+		json=json+list2DToJson(self.transitions)+',\n'
+		json=json+'[\"'+self.initial+'\"],\n'
+		json=json+listToJson(self.finals)+',\n'
+		
+
+	def merge(self,other,opr,newstate='?'):
 		if opr=='+':
-			a='TODO MEEEEEEEEEEEEEEEEEEEEEEE'
+			self.states=list(set(self.states)|set(other.states))
+			self.dictionary=list(set(self.dictionary)|set(other.dictionary))
+			self.transitions=list(set(self.transitions)|set(other.transitions))
+			self.finals=list(set(self.finals)|set(other.finals))
+			self.states.append(newstate)
+			self.transitions.append(Edge(self.states[len(self.states)-1],LAMBDA,self.initial))
+			self.transitions.append(Edge(self.states[len(self.states)-1],LAMBDA,other.initial))
+			self.initial=self.states[len(self.states)-1]
 		elif opr=='.':
-			a='TODO MEEEEEEEEEEEEEEEEEEEEEEE'
+			self.states=list(set(self.states)|set(other.states))
+			self.dictionary=list(set(self.dictionary)|set(other.dictionary))
+			self.transitions=list(set(self.transitions)|set(other.transitions))
+			for i in range(len(self.finals)):
+				self.transitions.append(Edge(self.finals[i],LAMBDA,other.initial))
+			self.finals=other.finals
 		else:
-			print('ERRRORRR unexpected operation ',opr,'expeceted + or .')
+			print('ERRRORRR-003 unexpected operation ',opr,', expeceted + or .')
 			raise SystemExit()
 
 	def star(self):
-		a='TODO MEEEEEEEEEEEEEEEEEEEEEEE'
+		for i in range(len(self.finals)):
+			self.transitions.append(Edge(self.finals[i],LAMBDA,self.initial))
+		self.finals.append(self.initial)
+
+l=LexicalAnalysis()
+l.printTokens()
+s=SyntaticalAnalysis(l)
+s.start()
+print (s.geteNFA().tojson())
