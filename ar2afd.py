@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import subprocess
 from enum import Enum
 
 LAMBDA=''
@@ -36,13 +36,16 @@ class Lexeme(object):
 		self.ttype=ttype
 
 class LexicalAnalysis(object):
-	def __init__(self,er='(aa)*(b + aba)(aa)*'):
+	def __init__(self,re='(aa)*(b + aba)(aa)*'):
 		self.dictionary=[]
-		self.er=er
+		self.re=re
 		self.it_pointer=0
 
 	def getDictionary(self):
 		return self.dictionary
+
+	def getRE(self):
+		return self.re
 
 	def reset(self):
 		self.it_pointer=0;
@@ -57,17 +60,17 @@ class LexicalAnalysis(object):
 
 	def createDictionary(self):
 		self.dictionary=[]
-		for i in range(len(self.er)):
-			if(self.er[i]!='(' and self.er[i]!=')' and self.er[i]!='*' and self.er[i]!='+' and self.er[i]!=' '):
-				if(self.er[i] not in self.dictionary):
-					self.dictionary.append(self.er[i])
+		for i in range(len(self.re)):
+			if(self.re[i]!='(' and self.re[i]!=')' and self.re[i]!='*' and self.re[i]!='+' and self.re[i]!=' '):
+				if(self.re[i] not in self.dictionary):
+					self.dictionary.append(self.re[i])
 
 	def nextToken(self):
 		lex=Lexeme()
 		state=State.BEGIN
 		while(state!=State.KOWNTYPE and state!=State.UNKOWNTYPE):
-			if(self.it_pointer<len(self.er)):
-				c=self.er[self.it_pointer]
+			if(self.it_pointer<len(self.re)):
+				c=self.re[self.it_pointer]
 				self.it_pointer=self.it_pointer+1
 			else:
 				c=-1
@@ -142,7 +145,7 @@ class SyntaticalAnalysis(object):
 	def start(self):
 		self.eNFA=self.procExpr()
 		# self.NFA=Converter
-		# self.DFA=Converter
+		# self.DFA=Converter 
 
 	def geteNFA(self):
 		return self.eNFA
@@ -152,6 +155,21 @@ class SyntaticalAnalysis(object):
 
 	def getDFA(self):
 		return self.DFA
+
+	def toPDF(self,json):
+		json=json.replace('\"', '\\\"')
+		subprocess.call('echo \"'+json+'\" > tmp.json', shell=True)
+		subprocess.call('./json2dot.sh tmp.json > tmp.dot', shell=True)
+		subprocess.call('dot -Tpdf -o tmp.pdf tmp.dot', shell=True)
+
+	def eNFAToPDF(self):
+		self.pdf(self.eNFA.tojson())
+
+	def NFAToPDF(self):
+		self.pdf(self.NFA.tojson())
+
+	def DFAToPDF(self):
+		self.pdf(self.DFA.tojson())
 
 	def procExpr(self):
 		a=self.procTerm()
@@ -267,4 +285,6 @@ l.createDictionary()
 l.printTokens()
 s=SyntaticalAnalysis(l)
 s.start()
-print (s.geteNFA().tojson())
+print('RE=',l.getRE())
+print(s.geteNFA().tojson())
+s.eNFAToPDF()
