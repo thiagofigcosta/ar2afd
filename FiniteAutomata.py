@@ -145,18 +145,6 @@ class FiniteAutomata(object):
 					for x in range(len(tablelambda[newstate[t]])):
 						if tablelambda[newstate[t]][x] not in newstate:
 							newstate.append(tablelambda[newstate[t]][x])
-				####################################################################
-				# if(newstate == []):#starting blank e.g.(a+b)
-				# 	if ',' not in newstates[b] and newstates[b]!='':
-				# 		for x in range(len(tablelambda[newstates[b]])):
-				# 			if tablelambda[newstates[b]][x] not in newstate:
-				# 				newstate.append(tablelambda[newstates[b]][x])
-				# 	else:
-				# 		for t in range(0,len(newstates[b]),2):
-				# 			for x in range(len(tablelambda[newstates[b][t]])):
-				# 				if tablelambda[newstates[b][t]][x] not in newstate:
-				# 					newstate.append(tablelambda[newstates[b][t]][x])
-				####################################################################
 				if(newstate != []):
 					final=False
 					for t in range(len(newstate)):
