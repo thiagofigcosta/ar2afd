@@ -52,10 +52,16 @@ class LexicalAnalysis(object):
 		self.it_pointer=0;
 
 	def printTokens(self):
+		s=''
+		i=0;
 		lex=self.nextToken()
 		while lex.getType().value>0:
-			print(lex.getType().name)
+			s=s+lex.getType().name+' '
+			if i%8==0 and i>0:
+				s=s+'\n'
 			lex=self.nextToken()
+			i=i+1
+		print s
 		self.reset()
 
 	def createDictionary(self):
@@ -115,7 +121,6 @@ class SyntaticalAnalysis(object):
 		self.current=lexical.nextToken()
 		self.basename=0
 		self.eNFA=None
-		self.NFA=None
 		self.DFA=None
 
 	def popToken(self):
@@ -144,14 +149,10 @@ class SyntaticalAnalysis(object):
 		
 	def start(self):
 		self.eNFA=self.procExpr()
-		self.NFA=self.eNFA.toNFA()
-		self.DFA=self.NFA.toDFA() 
+		self.DFA=self.eNFA.toDFA() 
 
 	def geteNFA(self):
 		return self.eNFA
-
-	def getNFA(self):
-		return self.NFA
 
 	def getDFA(self):
 		return self.DFA
@@ -163,13 +164,10 @@ class SyntaticalAnalysis(object):
 		subprocess.call('dot -Tpdf -o tmp.pdf tmp.dot', shell=True)
 
 	def eNFAToPDF(self):
-		self.pdf(self.eNFA.tojson())
-
-	def NFAToPDF(self):
-		self.pdf(self.NFA.tojson())
+		self.toPDF(self.eNFA.tojson())
 
 	def DFAToPDF(self):
-		self.pdf(self.DFA.tojson())
+		self.toPDF(self.DFA.tojson())
 
 	def procExpr(self):
 		a=self.procTerm()
@@ -216,8 +214,23 @@ class Edge(object):
 		self.origin=origin
 		self.token=token
 		self.destiny=destiny
-	def tolist(self):
-		return [self.origin,self.token,self.destiny]
+	def __lt__(self, other):
+			return self.origin<other.origin
+	def __str__(self):
+		return '[\"'+self.origin+'\",\"'+self.token+'\",\"'+self.destiny+'\"]'
+	def __repr__(self):
+		return self.__str__()
+	def __eq__(self, other):
+		return self.origin==other.origin and self.token==other.token and self.destiny==other.destiny
+	def __hash__(self):
+		return hash(('origin', self.origin, 'token', self.token, 'destiny', self.destiny))
+	def getOrigin(self):
+		return self.origin
+	def getToken(self):
+		return self.token
+	def getDestiny(self):
+		return self.destiny
+
 
 
 class FA(object): 
@@ -241,7 +254,7 @@ class FA(object):
 		def list2DToJson(lst):
 			json='		[\n'
 			for i in range(len(lst)):
-				json=json+'	'+listToJson(lst[i].tolist())
+				json=json+'			'+lst[i].__str__()
 				if i != len(lst)-1:
 					json=json+',\n'
 			json=json+'\n		]'
@@ -281,19 +294,78 @@ class FA(object):
 			self.transitions.append(Edge(self.finals[i],self.LAMBDA,self.initial))
 		self.finals.append(self.initial)
 
-	def toNFA(self):
-		NFA=copy.deepcopy(self)
-		return NFA
-
 	def toDFA(self):
-		DFA=copy.deepcopy(self)
-		return DFA
+		def listToStr(l):
+			s=''
+			for i in range(len(l)):
+				s=s+l[i]
+				if i!=len(l)-1:
+					s=s+','
+			return s
+			
+		self.transitions.sort()
+		tablelambda={}
+		tabletransitions=[ {} for i in range(len(self.dictionary)) ]
+		for b in range(len(self.dictionary)):
+			for t in range(len(self.states)):
+				tabletransitions[b][self.states[t]]=[]
+		for i in range(len(self.states)):
+			tablelambda[self.states[i]]=[self.states[i]]
+		for i in range(len(self.transitions)):
+			if(self.transitions[i].getToken()==self.LAMBDA):
+				tablelambda[self.transitions[i].getOrigin()].append(self.transitions[i].getDestiny())
+			else:
+				for b in range(len(self.dictionary)):
+					if self.transitions[i].getToken()==self.dictionary[b]:
+						tabletransitions[b][self.transitions[i].getOrigin()].append(self.transitions[i].getDestiny())
+		for i in range(len(self.states)):
+			tablelambda[self.states[i]]=list(set(tablelambda[self.states[i]]))		
+		newstates=[self.initial]
+		newfinals=[]
+		newtransitions=[]
+		if self.initial in self.finals:
+			newfinals=[self.initial]
+		b=0
+		while b<len(newstates):
+			for i in range(len(self.dictionary)):
+				newstate=[]
+				if ',' not in newstates[b] and newstates[b]!='':
+					newstate.extend(tabletransitions[i][newstates[b]])
+				else:
+					for t in range(0,len(newstates[b]),2):
+						newstate.extend(tabletransitions[i][newstates[b][t]])
+				for t in range(len(newstate)):
+					newstate.extend(tablelambda[newstates[t]])
+				newstate=list(set(newstate))
+				newstate.sort()
+				final=False
+				for t in range(len(newstate)):
+					if newstate[t] in self.finals:
+						final=True
+						break
+				newstatename=listToStr(newstate)
+				if newstatename not in newstates:
+					newstates.append(newstatename)
+					if final:
+						newfinals.append(newstatename)
+				newtransitions.append(Edge(newstates[b],self.dictionary[i],newstatename))
+			newtransitions=list(set(newtransitions))
+			b=b+1
+		return FA(newstates,self.dictionary,newtransitions,self.initial,newfinals)
 
 l=LexicalAnalysis()
 l.createDictionary()
 l.printTokens()
 s=SyntaticalAnalysis(l)
 s.start()
+string=''
+for i in range(40):
+	string=string+'-'
+string=string	
+print (string)
 print('RE=',l.getRE())
+print (string)
 print(s.geteNFA().tojson())
-# s.eNFAToPDF()
+print (string)
+print(s.getDFA().tojson())
+s.eNFAToPDF()
