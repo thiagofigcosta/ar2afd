@@ -29,7 +29,7 @@ class FiniteAutomata(object):
 			self.token=token
 		def setDestiny(self,destiny):
 			self.destiny=destiny
-	LAMBDA=''
+	LAMBDA='#'
 	def __init__(self,states=[],dictionary=[],transitions=[],initial=None,finals=[]):
 		self.states=states
 		self.dictionary=dictionary
