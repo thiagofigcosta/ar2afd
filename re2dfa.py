@@ -19,7 +19,7 @@ for i in range(1,len(sys.argv)):
 			break;
 	elif(sys.argv[i]=='-h' or sys.argv[i]=='-H' or sys.argv[i]=='--Half-Process'):
 		half=True
-	elif(isinstance(sys.argv[i], str)):
+	elif(isinstance(sys.argv[i], str) and '.' not in sys.argv[i]):
 		re=sys.argv[i]
 		ok=True
 	
