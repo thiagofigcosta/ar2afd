@@ -40,6 +40,9 @@ class LexicalAnalysis(object):
 		self.er=er
 		self.it_pointer=0
 
+	def getDictionary(self):
+		return self.dictionary
+
 	def reset(self):
 		self.it_pointer=0;
 
@@ -105,68 +108,99 @@ class LexicalAnalysis(object):
 			lex.setType(TokenType.INVALID)
 		return lex
 
-l=LexicalAnalysis()
-l.createDictionary()
-l.printTokens()
+class SyntaticalAnalysis(object):
+	def __init__(self, lexical):
+		self.lexical=lexical
+		self.current=lexical.nextToken()
+		self.basename=0
 
-# class Edge(object): 
-# 	def __init__(self, origin=None,token=None,destiny=None):
-# 		self.origin=origin
-# 		self.token=token
-# 		self.destiny=destiny
+	def popToken(self):
+		t=current.getToken()
+		self.consumeToken()
+		return t
+	def getToken(self):
+		return current.getToken()
+	def testToken(self,ttype):
+		return current.getType()==ttype
+	def consumeToken(self):
+		self.current=lexical.nextToken()
+	def matchToken(self,ttype):
+		if self.testToken(ttype):
+			self.current=lexical.nextToken()
+		else:
+			print('ERRRORRR expected ',ttype.name,' but got ',self.current.getType().name)
+			raise SystemExit()
 
-# class AF(object): 
-# 	def __init__(self,states=[],dictionary=[],transitions=[],initial=None,finals=[]):
-# 		self.states=states
-# 		self.dictionary=dictionary
-# 		self.transitions=transitions
-# 		self.initial=initial
-# 		self.finals=finals
-
-# 	def fromER(self,er='(aa)*(b + aba)(aa)*'):
+	def genStateName(self):
+		def baseN(num,b,numerals="ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
+			return ((num == 0) and numerals[0]) or (baseN(num // b, b, numerals).lstrip(numerals[0]) + numerals[num % b])
+		name=baseN(self.basename,26)
+		self.basename=self.basename+1
+		return name
 		
 
-		
+	def procExpr(self):
+		a=self.procTerm()
+		while testToken(TokenType.CROSS):
+			self.consumeToken()
+			b=self.procTerm()
+			a.merge(b,'+')
+		return a
 
-# 		def handle(er):
+	def procTerm(self):
+		a=self.procFactor()
+		while testToken(TokenType.SYMBOL) or testToken(TokenType.OPENTHEPAR):
+			b=self.procFactor()
+			a.merge(b,'.')
+		return a
 
-# 		def process(er):
-# 			self.states=[]
-# 			lastState='initial'
-# 			self.states.append(lastState)
-# 			self.initial=lastState
-# 			lastName='A'
-# 			stack=[]
-# 			toHandle=''
-# 			havePlus=False
-# 			lastPlusState=lastState
-# 			for i in range(len(er)):
-# 				if(er[i]=='('):
-# 					stack.append('.')
-# 				elif(er[i]==')'):
-# 					stack.pop()
-# 					if(havePlus):
-# 						if(len(stack)==0):
-# 							havePlus=False
+	def procFactor(self):
+		a=None
+		if testToken(TokenType.SYMBOL):
+			a=self.procSymbol()
+		elif testToken(TokenType.OPENTHEPAR):
+			consumeToken();
+			a=self.procExpr();
+			matchToken(TokenType.CLOSETHEPAR)
+		elif not testToken(TokenType.STAR):
+			print('ERRRORRR expected symbol or ( or * but got',self.getToken())
+			raise SystemExit()
+		if testToken(TokenType.STAR):
+			consumeToken()
+			a.star()
+		return a
 
-# 						else:
-# 							print('ERRRORRR')
-# 					if(len(stack)==0):
-# 						toHandle,lastName,lastState=handle(er,toHandle,lastName,lastState)
-# 				elif(er[i]=='+'):
-
-# 				elif(er[i]=='*'):
-
-# 				else:
-
-# 			if(len(toHandle)>0):
-# 				toHandle,lastName,lastState=handle(er,toHandle,lastName,lastState)
-
-		
+	def procSymbol(self):
+		states=[self.genStateName(), self.genStateName()]
+		dictionary=self.lexical.getDictionary()
+		transitions=Edge(states[0],self.popToken(),states[1])
+		initial=states[0]
+		finals=[states[1]]
+		return AF(states,dictionary,transitions,initial,finals)
 
 
+class Edge(object): 
+	def __init__(self, origin=None,token=None,destiny=None):
+		self.origin=origin
+		self.token=token
+		self.destiny=destiny
 
+class AF(object): 
+	def __init__(self,states=[],dictionary=[],transitions=[],initial=None,finals=[]):
+		self.states=states
+		self.dictionary=dictionary
+		self.transitions=transitions
+		self.initial=initial
+		self.finals=finals
 
-# 		er=er.replace(" ", "")
-# 		createDictionary(er)
-# 		process(er)
+	def merge(self,other,opr):
+		if opr=='+':
+			a='TODO MEEEEEEEEEEEEEEEEEEEEEEE'
+		elif opr=='.':
+			a='TODO MEEEEEEEEEEEEEEEEEEEEEEE'
+		else:
+			print('ERRRORRR unexpected operation ',opr,'expeceted + or .')
+			raise SystemExit()
+
+	def star(self):
+		a='TODO MEEEEEEEEEEEEEEEEEEEEEEE'
