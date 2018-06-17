@@ -3,6 +3,7 @@
 
 from enum import Enum
 
+LAMBDA=''
 class TokenType(Enum):
 	INVALID=-2
 	EOF=0
@@ -48,7 +49,8 @@ class LexicalAnalysis(object):
 
 	def printTokens(self):
 		lex=self.nextToken()
-		while lex.getType().value>0:
+		# while lex.getType().value>0:
+		for i in range(17):
 			print(lex.getType().name)
 			lex=self.nextToken()
 		self.reset()
@@ -125,7 +127,7 @@ class SyntaticalAnalysis(object):
 		self.current=self.lexical.nextToken()
 	def matchToken(self,ttype):
 		if self.testToken(ttype):
-			self.current=lexical.nextToken()
+			self.current=self.lexical.nextToken()
 		else:
 			print('ERRRORRR-001 expected ',ttype.name,', but got ',self.current.getType().name)
 			raise SystemExit()
@@ -196,9 +198,11 @@ class Edge(object):
 		self.origin=origin
 		self.token=token
 		self.destiny=destiny
+	def tolist(self):
+		return [self.origin,self.token,self.destiny]
+
 
 class FA(object): 
-	LAMBDA=''
 	def __init__(self,states=[],dictionary=[],transitions=[],initial=None,finals=[]):
 		self.states=states
 		self.dictionary=dictionary
@@ -208,28 +212,29 @@ class FA(object):
 
 	def tojson(self):
 		def listToJson(lst):
-			json='	['
+			json='		['
 			for i in range(len(lst)):
 				json=json+'\"'+lst[i]+'\"'
 				if i != len(lst)-1:
 					json=json+', '
-			json=json+'	]'
+			json=json+']'
 			return json
 		def list2DToJson(lst):
-			json='	['
+			json='		[\n'
 			for i in range(len(lst)):
-				json=json+'	'+listToJson(lst[i])
+				json=json+'	'+listToJson(lst[i].tolist())
 				if i != len(lst)-1:
 					json=json+',\n'
-			json=json+'	]'
+			json=json+'\n		]'
 			return json
 		json='{ "af": [\n'
 		json=json+listToJson(self.states)+',\n'
 		json=json+listToJson(self.dictionary)+',\n'
 		json=json+list2DToJson(self.transitions)+',\n'
-		json=json+'[\"'+self.initial+'\"],\n'
-		json=json+listToJson(self.finals)+',\n'
-		
+		json=json+'		[\"'+self.initial+'\"],\n'
+		json=json+listToJson(self.finals)+'\n'
+		json=json+'	]\n}'
+		return json
 
 	def merge(self,other,opr,newstate='?'):
 		if opr=='+':
@@ -258,6 +263,7 @@ class FA(object):
 		self.finals.append(self.initial)
 
 l=LexicalAnalysis()
+l.createDictionary()
 l.printTokens()
 s=SyntaticalAnalysis(l)
 s.start()
