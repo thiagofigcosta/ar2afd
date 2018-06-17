@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import copy
 import subprocess
 from enum import Enum
 
-LAMBDA=''
+
 class TokenType(Enum):
 	INVALID=-2
 	EOF=0
@@ -52,8 +53,7 @@ class LexicalAnalysis(object):
 
 	def printTokens(self):
 		lex=self.nextToken()
-		# while lex.getType().value>0:
-		for i in range(17):
+		while lex.getType().value>0:
 			print(lex.getType().name)
 			lex=self.nextToken()
 		self.reset()
@@ -144,8 +144,8 @@ class SyntaticalAnalysis(object):
 		
 	def start(self):
 		self.eNFA=self.procExpr()
-		# self.NFA=Converter
-		# self.DFA=Converter 
+		self.NFA=self.eNFA.toNFA()
+		self.DFA=self.NFA.toDFA() 
 
 	def geteNFA(self):
 		return self.eNFA
@@ -221,6 +221,7 @@ class Edge(object):
 
 
 class FA(object): 
+	LAMBDA=''
 	def __init__(self,states=[],dictionary=[],transitions=[],initial=None,finals=[]):
 		self.states=states
 		self.dictionary=dictionary
@@ -261,15 +262,15 @@ class FA(object):
 			self.transitions=list(set(self.transitions)|set(other.transitions))
 			self.finals=list(set(self.finals)|set(other.finals))
 			self.states.append(newstate)
-			self.transitions.append(Edge(self.states[len(self.states)-1],LAMBDA,self.initial))
-			self.transitions.append(Edge(self.states[len(self.states)-1],LAMBDA,other.initial))
+			self.transitions.append(Edge(self.states[len(self.states)-1],self.LAMBDA,self.initial))
+			self.transitions.append(Edge(self.states[len(self.states)-1],self.LAMBDA,other.initial))
 			self.initial=self.states[len(self.states)-1]
 		elif opr=='.':
 			self.states=list(set(self.states)|set(other.states))
 			self.dictionary=list(set(self.dictionary)|set(other.dictionary))
 			self.transitions=list(set(self.transitions)|set(other.transitions))
 			for i in range(len(self.finals)):
-				self.transitions.append(Edge(self.finals[i],LAMBDA,other.initial))
+				self.transitions.append(Edge(self.finals[i],self.LAMBDA,other.initial))
 			self.finals=other.finals
 		else:
 			print('ERRRORRR-003 unexpected operation ',opr,', expeceted + or .')
@@ -277,8 +278,16 @@ class FA(object):
 
 	def star(self):
 		for i in range(len(self.finals)):
-			self.transitions.append(Edge(self.finals[i],LAMBDA,self.initial))
+			self.transitions.append(Edge(self.finals[i],self.LAMBDA,self.initial))
 		self.finals.append(self.initial)
+
+	def toNFA(self):
+		NFA=copy.deepcopy(self)
+		return NFA
+
+	def toDFA(self):
+		DFA=copy.deepcopy(self)
+		return DFA
 
 l=LexicalAnalysis()
 l.createDictionary()
@@ -287,4 +296,4 @@ s=SyntaticalAnalysis(l)
 s.start()
 print('RE=',l.getRE())
 print(s.geteNFA().tojson())
-s.eNFAToPDF()
+# s.eNFAToPDF()
