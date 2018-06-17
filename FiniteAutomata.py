@@ -58,16 +58,24 @@ class FiniteAutomata(object):
 		json=json+'  ]\n}'
 		return json
 
-	def merge(self,other,opr,newstate='?'):
+	def merge(self,other,opr,newstate1='?1',newstate2='?2'):
 		if opr=='+':
 			self.states=list(set(self.states)|set(other.states))
 			self.dictionary=list(set(self.dictionary)|set(other.dictionary))
 			self.transitions=list(set(self.transitions)|set(other.transitions))
 			self.finals=list(set(self.finals)|set(other.finals))
-			self.states.append(newstate)
-			self.transitions.append(self.Edge(newstate,self.LAMBDA,self.initial))
-			self.transitions.append(self.Edge(newstate,self.LAMBDA,other.initial))
-			self.initial=newstate
+			self.states.append(newstate1)
+			self.transitions.append(self.Edge(newstate1,self.LAMBDA,self.initial))
+			self.transitions.append(self.Edge(newstate1,self.LAMBDA,other.initial))
+			self.initial=newstate1
+
+			####################################################################
+			self.states.append(newstate2)
+			for i in range(len(self.finals)):
+				self.transitions.append(self.Edge(self.finals[i],self.LAMBDA,newstate2))
+			self.finals=[newstate2]
+			####################################################################
+
 		elif opr=='.':
 			self.states=list(set(self.states)|set(other.states))
 			self.dictionary=list(set(self.dictionary)|set(other.dictionary))
@@ -132,18 +140,30 @@ class FiniteAutomata(object):
 					for x in range(len(tablelambda[newstate[t]])):
 						if tablelambda[newstate[t]][x] not in newstate:
 							newstate.append(tablelambda[newstate[t]][x])
-				if(newstate != []):
-					final=False
-					for t in range(len(newstate)):
-						if newstate[t] in self.finals:
-							final=True
-							break
-					newstatename=listToStr(newstate)
-					if newstatename not in newstates:
-						newstates.append(newstatename)
-						if final:
-							newfinals.append(newstatename)
-					newtransitions.append(self.Edge(newstates[b],self.dictionary[i],newstatename))
+				####################################################################
+				if(newstate == []):#starting blank e.g.(a+b)
+					if ',' not in newstates[b] and newstates[b]!='':
+						for x in range(len(tablelambda[newstates[b]])):
+							if tablelambda[newstates[b]][x] not in newstate:
+								newstate.append(tablelambda[newstates[b]][x])
+					else:
+						for t in range(0,len(newstates[b]),2):
+							for x in range(len(tablelambda[newstates[b][t]])):
+								if tablelambda[newstates[b][t]][x] not in newstate:
+									newstate.append(tablelambda[newstates[b][t]][x])
+				####################################################################
+
+				final=False
+				for t in range(len(newstate)):
+					if newstate[t] in self.finals:
+						final=True
+						break
+				newstatename=listToStr(newstate)
+				if newstatename not in newstates:
+					newstates.append(newstatename)
+					if final:
+						newfinals.append(newstatename)
+				newtransitions.append(self.Edge(newstates[b],self.dictionary[i],newstatename))
 			newtransitions=list(set(newtransitions))
 			b=b+1
 		newtransitions.sort()

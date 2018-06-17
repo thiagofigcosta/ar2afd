@@ -65,7 +65,7 @@ class SyntaticalAnalysis(object):
 		while self.testToken(LA.TokenType.CROSS):
 			self.consumeToken()
 			b=self.procTerm()
-			a.merge(b,'+',self.genStateName())
+			a.merge(b,'+',self.genStateName(),self.genStateName())
 		return a
 
 	def procTerm(self):
