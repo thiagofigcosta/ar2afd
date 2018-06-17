@@ -65,9 +65,9 @@ class FiniteAutomata(object):
 			self.transitions=list(set(self.transitions)|set(other.transitions))
 			self.finals=list(set(self.finals)|set(other.finals))
 			self.states.append(newstate)
-			self.transitions.append(self.Edge(self.states[len(self.states)-1],self.LAMBDA,self.initial))
-			self.transitions.append(self.Edge(self.states[len(self.states)-1],self.LAMBDA,other.initial))
-			self.initial=self.states[len(self.states)-1]
+			self.transitions.append(self.Edge(newstate,self.LAMBDA,self.initial))
+			self.transitions.append(self.Edge(newstate,self.LAMBDA,other.initial))
+			self.initial=newstate
 		elif opr=='.':
 			self.states=list(set(self.states)|set(other.states))
 			self.dictionary=list(set(self.dictionary)|set(other.dictionary))
