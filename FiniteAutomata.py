@@ -23,6 +23,12 @@ class FiniteAutomata(object):
 			return self.token
 		def getDestiny(self):
 			return self.destiny
+		def setOrigin(self,origin):
+			self.origin=origin
+		def setToken(self,token):
+			self.token=token
+		def setDestiny(self,destiny):
+			self.destiny=destiny
 	LAMBDA=''
 	def __init__(self,states=[],dictionary=[],transitions=[],initial=None,finals=[]):
 		self.states=states
@@ -58,24 +64,23 @@ class FiniteAutomata(object):
 		json=json+'  ]\n}'
 		return json
 
-	def merge(self,other,opr,newstate1='?1',newstate2='?2'):
+	def merge(self,other,opr):
 		if opr=='+':
+			for i in range(len(other.transitions)):
+				if other.transitions[i].getDestiny()==other.initial:
+					other.transitions[i].setDestiny(self.initial)
+				for j in range(len(other.finals)):
+					if other.transitions[i].getDestiny()==other.finals[j]:
+						other.transitions[i].setDestiny(self.finals[0])
+				if other.transitions[i].getOrigin()==other.initial:
+					other.transitions[i].setOrigin(self.initial)
+				for j in range(len(other.finals)):
+					if other.transitions[i].getOrigin()==other.finals[j]:
+						other.transitions[i].setOrigin(self.finals[0])
 			self.states=list(set(self.states)|set(other.states))
 			self.dictionary=list(set(self.dictionary)|set(other.dictionary))
 			self.transitions=list(set(self.transitions)|set(other.transitions))
 			self.finals=list(set(self.finals)|set(other.finals))
-			self.states.append(newstate1)
-			self.transitions.append(self.Edge(newstate1,self.LAMBDA,self.initial))
-			self.transitions.append(self.Edge(newstate1,self.LAMBDA,other.initial))
-			self.initial=newstate1
-
-			####################################################################
-			self.states.append(newstate2)
-			for i in range(len(self.finals)):
-				self.transitions.append(self.Edge(self.finals[i],self.LAMBDA,newstate2))
-			self.finals=[newstate2]
-			####################################################################
-
 		elif opr=='.':
 			self.states=list(set(self.states)|set(other.states))
 			self.dictionary=list(set(self.dictionary)|set(other.dictionary))
@@ -141,29 +146,29 @@ class FiniteAutomata(object):
 						if tablelambda[newstate[t]][x] not in newstate:
 							newstate.append(tablelambda[newstate[t]][x])
 				####################################################################
-				if(newstate == []):#starting blank e.g.(a+b)
-					if ',' not in newstates[b] and newstates[b]!='':
-						for x in range(len(tablelambda[newstates[b]])):
-							if tablelambda[newstates[b]][x] not in newstate:
-								newstate.append(tablelambda[newstates[b]][x])
-					else:
-						for t in range(0,len(newstates[b]),2):
-							for x in range(len(tablelambda[newstates[b][t]])):
-								if tablelambda[newstates[b][t]][x] not in newstate:
-									newstate.append(tablelambda[newstates[b][t]][x])
+				# if(newstate == []):#starting blank e.g.(a+b)
+				# 	if ',' not in newstates[b] and newstates[b]!='':
+				# 		for x in range(len(tablelambda[newstates[b]])):
+				# 			if tablelambda[newstates[b]][x] not in newstate:
+				# 				newstate.append(tablelambda[newstates[b]][x])
+				# 	else:
+				# 		for t in range(0,len(newstates[b]),2):
+				# 			for x in range(len(tablelambda[newstates[b][t]])):
+				# 				if tablelambda[newstates[b][t]][x] not in newstate:
+				# 					newstate.append(tablelambda[newstates[b][t]][x])
 				####################################################################
-
-				final=False
-				for t in range(len(newstate)):
-					if newstate[t] in self.finals:
-						final=True
-						break
-				newstatename=listToStr(newstate)
-				if newstatename not in newstates:
-					newstates.append(newstatename)
-					if final:
-						newfinals.append(newstatename)
-				newtransitions.append(self.Edge(newstates[b],self.dictionary[i],newstatename))
+				if(newstate != []):
+					final=False
+					for t in range(len(newstate)):
+						if newstate[t] in self.finals:
+							final=True
+							break
+					newstatename=listToStr(newstate)
+					if newstatename not in newstates:
+						newstates.append(newstatename)
+						if final:
+							newfinals.append(newstatename)
+					newtransitions.append(self.Edge(newstates[b],self.dictionary[i],newstatename))
 			newtransitions=list(set(newtransitions))
 			b=b+1
 		newtransitions.sort()
