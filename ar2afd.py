@@ -15,7 +15,7 @@ class TokenType(Enum):
 class State(Enum):
 	BEGIN=1
 	KOWNTYPE=2
-	UNKOWNTYPE=2
+	UNKOWNTYPE=3
 
 class Lexeme(object):
 	def __init__(self, token='',ttype=TokenType.INVALID):
@@ -45,8 +45,7 @@ class LexicalAnalysis(object):
 
 	def printTokens(self):
 		lex=self.nextToken()
-		#while lex.getType().value>=0:
-		for i in range(15):
+		while lex.getType().value>0:
 			print(lex.getType().name)
 			lex=self.nextToken()
 		self.reset()
