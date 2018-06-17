@@ -259,6 +259,7 @@ class FA(object):
 					json=json+',\n'
 			json=json+'\n		]'
 			return json
+		self.transitions.sort()
 		json='{ "af": [\n'
 		json=json+listToJson(self.states)+',\n'
 		json=json+listToJson(self.dictionary)+',\n'
@@ -302,8 +303,6 @@ class FA(object):
 				if i!=len(l)-1:
 					s=s+','
 			return s
-			
-		self.transitions.sort()
 		tablelambda={}
 		tabletransitions=[ {} for i in range(len(self.dictionary)) ]
 		for b in range(len(self.dictionary)):
@@ -319,53 +318,69 @@ class FA(object):
 					if self.transitions[i].getToken()==self.dictionary[b]:
 						tabletransitions[b][self.transitions[i].getOrigin()].append(self.transitions[i].getDestiny())
 		for i in range(len(self.states)):
-			tablelambda[self.states[i]]=list(set(tablelambda[self.states[i]]))		
+			tablelambda[self.states[i]]=list(set(tablelambda[self.states[i]]))	
+			for b in range(len(self.dictionary)):
+					tabletransitions[b][self.states[t]]=list(set(tabletransitions[b][self.states[t]]))
 		newstates=[self.initial]
 		newfinals=[]
 		newtransitions=[]
 		if self.initial in self.finals:
 			newfinals=[self.initial]
+		# ACIMA PARECE ESTAR FUNCIONANDO, PROBLEMA ABAIXO 
 		b=0
 		while b<len(newstates):
 			for i in range(len(self.dictionary)):
 				newstate=[]
 				if ',' not in newstates[b] and newstates[b]!='':
-					newstate.extend(tabletransitions[i][newstates[b]])
+					for x in range(len(tabletransitions[i][newstates[b]])):
+						if tabletransitions[i][newstates[b]][x] not in newstate:
+							newstate.append(tabletransitions[i][newstates[b]][x])
 				else:
 					for t in range(0,len(newstates[b]),2):
-						newstate.extend(tabletransitions[i][newstates[b][t]])
+						for x in range(len(tabletransitions[i][newstates[b][t]])):
+							if tabletransitions[i][newstates[b][t]][x] not in newstate:
+								newstate.append(tabletransitions[i][newstates[b][t]][x])
 				for t in range(len(newstate)):
-					newstate.extend(tablelambda[newstates[t]])
-				newstate=list(set(newstate))
-				newstate.sort()
-				final=False
-				for t in range(len(newstate)):
-					if newstate[t] in self.finals:
-						final=True
-						break
-				newstatename=listToStr(newstate)
-				if newstatename not in newstates:
-					newstates.append(newstatename)
-					if final:
-						newfinals.append(newstatename)
-				newtransitions.append(Edge(newstates[b],self.dictionary[i],newstatename))
+					for x in range(len(tablelambda[newstate[t]])):
+						if tablelambda[newstate[t]][x] not in newstate:
+							newstate.append(tablelambda[newstate[t]][x])
+				if(newstate != []):
+					final=False
+					for t in range(len(newstate)):
+						if newstate[t] in self.finals:
+							final=True
+							break
+					newstatename=listToStr(newstate)
+					if newstatename not in newstates:
+						newstates.append(newstatename)
+						if final:
+							newfinals.append(newstatename)
+					newtransitions.append(Edge(newstates[b],self.dictionary[i],newstatename))
 			newtransitions=list(set(newtransitions))
 			b=b+1
+		newtransitions.sort()
 		return FA(newstates,self.dictionary,newtransitions,self.initial,newfinals)
 
-l=LexicalAnalysis()
-l.createDictionary()
-l.printTokens()
-s=SyntaticalAnalysis(l)
-s.start()
-string=''
-for i in range(40):
-	string=string+'-'
-string=string	
-print (string)
-print('RE=',l.getRE())
-print (string)
-print(s.geteNFA().tojson())
-print (string)
-print(s.getDFA().tojson())
-s.eNFAToPDF()
+# l=LexicalAnalysis()
+# l.createDictionary()
+# l.printTokens()
+# s=SyntaticalAnalysis(l)
+# s.start()
+# string=''
+# for i in range(40):
+# 	string=string+'-'
+# string=string	
+# print (string)
+# print('RE=',l.getRE())
+# print (string)
+# print(s.geteNFA().tojson())
+# print (string)
+# print(s.getDFA().tojson())
+# s.eNFAToPDF()
+
+t=FA(['1','2','3','4'],\
+	['a','b','c'],\
+	[Edge('1','a','2'),Edge('2',FA.LAMBDA,'1'),Edge('2','b','3'),Edge('3','a','2'),Edge('4','c','3'),Edge('4',FA.LAMBDA,'3'),Edge('1','c','4')],\
+	'1',\
+	['3'])
+print t.toDFA().tojson()
