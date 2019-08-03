@@ -59,7 +59,7 @@ class LexicalAnalysis(object):
 				s=s+'\n'
 			lex=self.nextToken()
 			i=i+1
-		print s
+		print (s)
 		self.reset()
 
 	def createDictionary(self):
